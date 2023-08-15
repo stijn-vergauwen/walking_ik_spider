@@ -77,6 +77,8 @@ fn calculate_distances_between_points(points: &Vec<Vec3>) -> Vec<f32> {
     distances
 }
 
+// Gizmos
+
 fn draw_ik_chain_gizmos(mut gizmos: Gizmos, ik_chains: Query<&IkChain>) {
     for chain in ik_chains.iter() {
         for point in chain.points.iter() {
