@@ -65,6 +65,37 @@ struct ChainSegment {
     length: f32,
 }
 
+fn solve_chain_towards_target(chain: &mut IkChain, target: Vec3, iterations: i32) {
+    for _ in 0..iterations {
+        backward_fabrik_pass(chain, target);
+        forward_fabrik_pass(chain);
+    }
+}
+
+fn forward_fabrik_pass(chain: &mut IkChain) {
+    let points_count = chain.points.len();
+
+    chain.points[0] = chain.start;
+    for i in 0..points_count - 1 {
+        let segment = chain.get_segment(i);
+        let direction = (segment.end - segment.start).normalize_or_zero();
+
+        chain.points[i + 1] = segment.start + direction * segment.length;
+    }
+}
+
+fn backward_fabrik_pass(chain: &mut IkChain, target: Vec3) {
+    let points_count = chain.points.len();
+
+    chain.points[points_count - 1] = target;
+    for i in (0..points_count - 1).rev() {
+        let segment = chain.get_segment(i);
+        let direction = (segment.start - segment.end).normalize_or_zero();
+
+        chain.points[i] = segment.end + direction * segment.length;
+    }
+}
+
 fn calculate_distances_between_points(points: &Vec<Vec3>) -> Vec<f32> {
     let mut distances: Vec<f32> = Vec::new();
 

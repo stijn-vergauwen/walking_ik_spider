@@ -1,17 +1,26 @@
 use bevy::prelude::*;
 
-use super::IkChain;
+use super::{solve_chain_towards_target, IkChain};
 
 const TARGET_RADIUS: f32 = 0.7;
 const TARGET_COLOR: Color = Color::LIME_GREEN;
 const TARGET_MOVE_SPEED: f32 = 2.0;
+
+const FABRIK_ITERATIONS: i32 = 1;
 
 pub struct IkLegPlugin;
 
 impl Plugin for IkLegPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (spawn_test_leg, spawn_test_target))
-            .add_systems(Update, (move_test_target_from_input, draw_test_target_gizmo));
+            .add_systems(
+                Update,
+                (
+                    move_test_target_from_input,
+                    move_test_leg_to_target,
+                    draw_test_target_gizmo,
+                ),
+            );
     }
 }
 
@@ -31,6 +40,17 @@ fn spawn_test_leg(mut commands: Commands) {
     commands.spawn((IkChain::new(test_points), TestLeg));
 }
 
+fn move_test_leg_to_target(
+    mut test_leg: Query<&mut IkChain, With<TestLeg>>,
+    test_target: Query<&GlobalTransform, With<TestTarget>>,
+) {
+    if let Ok(mut leg) = test_leg.get_single_mut() {
+        if let Ok(target) = test_target.get_single() {
+            solve_chain_towards_target(&mut leg, target.translation(), FABRIK_ITERATIONS);
+        }
+    }
+}
+
 fn spawn_test_target(mut commands: Commands) {
     commands.spawn((
         TransformBundle {
@@ -44,9 +64,8 @@ fn spawn_test_target(mut commands: Commands) {
 fn move_test_target_from_input(
     mut test_target: Query<&mut Transform, With<TestTarget>>,
     input: Res<Input<KeyCode>>,
-    time: Res<Time>
+    time: Res<Time>,
 ) {
-    
     if let Ok(mut transform) = test_target.get_single_mut() {
         let move_input = get_wasd_input_as_vector(&input);
 
