@@ -2,9 +2,12 @@ use bevy::prelude::*;
 
 use super::{solve_chain_towards_target, IkChain};
 
+const TARGET_OFFSET: Vec3 = Vec3::new(2.0, -0.5, 0.0);
+// const NEW_TARGET_DISTANCE_THRESHOLD: f32 = 1.0;
+
 const TARGET_RADIUS: f32 = 0.7;
-const TARGET_COLOR: Color = Color::LIME_GREEN;
-// const TARGET_MOVE_SPEED: f32 = 5.0;
+const TARGET_COLOR: Color = Color::ORANGE_RED;
+const CURRENT_TARGET_COLOR: Color = Color::LIME_GREEN;
 
 const FABRIK_ITERATIONS: i32 = 6;
 
@@ -14,71 +17,53 @@ pub struct IkLegPlugin;
 
 impl Plugin for IkLegPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (spawn_test_leg, spawn_test_target))
+        app.add_systems(Startup, spawn_basic_leg)
             .add_systems(
                 Update,
                 (
                     // move_test_target_from_input,
-                    move_test_leg_to_target,
-                    draw_test_target_gizmo,
-                    move_leg_base_from_input
+                    move_basic_leg_to_target,
+                    draw_leg_gizmos,
+                    move_leg_base_from_input,
                 ),
             );
     }
 }
 
 #[derive(Component)]
-struct TestLeg;
+struct BasicLeg {
+    target_offset: Vec3,
+    current_target: Vec3,
+}
 
-#[derive(Component)]
-struct TestTarget;
-
-fn spawn_test_leg(mut commands: Commands) {
+fn spawn_basic_leg(mut commands: Commands) {
     let test_points = vec![
         Vec3::new(-4.0, 1.0, 0.0),
         Vec3::new(-3.0, 3.0, 0.0),
         Vec3::new(-2.0, 1.0, 0.0),
     ];
 
-    commands.spawn((IkChain::new(test_points), TestLeg));
-}
+    let start = test_points[0];
+    let target = start + TARGET_OFFSET;
 
-fn move_test_leg_to_target(
-    mut test_leg: Query<&mut IkChain, With<TestLeg>>,
-    test_target: Query<&GlobalTransform, With<TestTarget>>,
-    mut gizmos: Gizmos
-) {
-    if let Ok(mut leg) = test_leg.get_single_mut() {
-        if let Ok(target) = test_target.get_single() {
-            solve_chain_towards_target(&mut leg, target.translation(), FABRIK_ITERATIONS, &mut gizmos);
-        }
-    }
-}
-
-fn spawn_test_target(mut commands: Commands) {
     commands.spawn((
-        TransformBundle {
-            local: Transform::from_xyz(-2.0, 1.0, 0.0),
-            ..default()
+        IkChain::new(test_points),
+        BasicLeg {
+            target_offset: TARGET_OFFSET,
+            current_target: target,
         },
-        TestTarget,
     ));
 }
 
-// fn move_test_target_from_input(
-//     mut test_target: Query<&mut Transform, With<TestTarget>>,
-//     input: Res<Input<KeyCode>>,
-//     time: Res<Time>,
-// ) {
-//     if let Ok(mut transform) = test_target.get_single_mut() {
-//         let move_input = get_wasd_input_as_vector(&input);
-
-//         transform.translation += move_input * time.delta_seconds() * TARGET_MOVE_SPEED;
-//     }
-// }
+fn move_basic_leg_to_target(mut basic_leg: Query<(&mut IkChain, &BasicLeg)>, mut gizmos: Gizmos) {
+    if let Ok((mut chain, leg)) = basic_leg.get_single_mut() {
+        let target = leg.current_target;
+        solve_chain_towards_target(&mut chain, target, FABRIK_ITERATIONS, &mut gizmos);
+    }
+}
 
 fn move_leg_base_from_input(
-    mut chain: Query<&mut IkChain, With<TestLeg>>,
+    mut chain: Query<&mut IkChain, With<BasicLeg>>,
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
@@ -116,14 +101,27 @@ fn get_wasd_input_as_vector(input: &Res<Input<KeyCode>>) -> Vec3 {
 
 // Gizmos
 
-fn draw_test_target_gizmo(mut gizmos: Gizmos, target: Query<&Transform, With<TestTarget>>) {
-    if let Ok(transform) = target.get_single() {
-        let position = transform.translation;
-
-        // Inner
-        gizmos.circle(position, Vec3::Y, 0.1, TARGET_COLOR);
-
-        // Outer
-        gizmos.circle(position, Vec3::Y, TARGET_RADIUS, TARGET_COLOR);
+fn draw_leg_gizmos(mut gizmos: Gizmos, basic_leg: Query<(&IkChain, &BasicLeg)>) {
+    if let Ok((chain, leg)) = basic_leg.get_single() {
+        draw_target(
+            &mut gizmos,
+            chain.start + leg.target_offset,
+            TARGET_RADIUS,
+            TARGET_COLOR,
+        );
+        draw_target(
+            &mut gizmos,
+            leg.current_target,
+            TARGET_RADIUS,
+            CURRENT_TARGET_COLOR,
+        );
     }
+}
+
+fn draw_target(gizmos: &mut Gizmos, position: Vec3, radius: f32, color: Color) {
+    // Inner
+    gizmos.circle(position, Vec3::Y, 0.1, color);
+
+    // Outer
+    gizmos.circle(position, Vec3::Y, radius, color);
 }
