@@ -1,5 +1,5 @@
 mod camera;
-mod ik;
+pub mod ik;
 mod world;
 mod spider;
 
