@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use super::{solve_chain_towards_target, IkChain};
 
 const TARGET_OFFSET: Vec3 = Vec3::new(2.0, -0.5, 0.0);
-// const NEW_TARGET_DISTANCE_THRESHOLD: f32 = 1.0;
+const NEW_TARGET_DISTANCE_THRESHOLD: f32 = 2.0;
 
 const TARGET_RADIUS: f32 = 0.7;
 const TARGET_COLOR: Color = Color::ORANGE_RED;
@@ -17,16 +17,16 @@ pub struct IkLegPlugin;
 
 impl Plugin for IkLegPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_basic_leg)
-            .add_systems(
-                Update,
-                (
-                    // move_test_target_from_input,
-                    move_basic_leg_to_target,
-                    draw_leg_gizmos,
-                    move_leg_base_from_input,
-                ),
-            );
+        app.add_systems(Startup, spawn_basic_leg).add_systems(
+            Update,
+            (
+                // move_test_target_from_input,
+                move_basic_leg_to_target,
+                draw_leg_gizmos,
+                move_leg_base_from_input,
+                set_new_target_if_threshold_reached,
+            ),
+        );
     }
 }
 
@@ -71,6 +71,17 @@ fn move_leg_base_from_input(
         let move_input = get_wasd_input_as_vector(&input);
 
         chain.start += move_input * time.delta_seconds() * LEG_BASE_MOVE_SPEED;
+    }
+}
+
+fn set_new_target_if_threshold_reached(mut basic_leg: Query<(&IkChain, &mut BasicLeg)>) {
+    if let Ok((chain, mut leg)) = basic_leg.get_single_mut() {
+        let target_position = chain.start + leg.target_offset;
+        let current_position = leg.current_target;
+
+        if target_position.distance(current_position) > NEW_TARGET_DISTANCE_THRESHOLD {
+            leg.current_target = target_position;
+        }
     }
 }
 
