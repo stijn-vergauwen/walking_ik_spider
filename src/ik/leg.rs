@@ -66,8 +66,8 @@ impl BasicLeg {
 //     ));
 // }
 
-fn move_basic_leg_to_target(mut basic_leg: Query<(&mut IkChain, &BasicLeg)>, mut gizmos: Gizmos) {
-    if let Ok((mut chain, leg)) = basic_leg.get_single_mut() {
+fn move_basic_leg_to_target(mut basic_legs: Query<(&mut IkChain, &BasicLeg)>, mut gizmos: Gizmos) {
+    for (mut chain, leg) in basic_legs.iter_mut() {
         let target = leg.current_target;
         solve_chain_towards_target(&mut chain, target, FABRIK_ITERATIONS, &mut gizmos);
     }
@@ -85,8 +85,8 @@ fn move_basic_leg_to_target(mut basic_leg: Query<(&mut IkChain, &BasicLeg)>, mut
 //     }
 // }
 
-fn set_new_target_if_threshold_reached(mut basic_leg: Query<(&IkChain, &mut BasicLeg)>) {
-    if let Ok((chain, mut leg)) = basic_leg.get_single_mut() {
+fn set_new_target_if_threshold_reached(mut basic_legs: Query<(&IkChain, &mut BasicLeg)>) {
+    for (chain, mut leg) in basic_legs.iter_mut() {
         let target_position = chain.start + leg.target_offset;
         let current_position = leg.current_target;
 
@@ -123,8 +123,8 @@ fn set_new_target_if_threshold_reached(mut basic_leg: Query<(&IkChain, &mut Basi
 
 // Gizmos
 
-fn draw_leg_gizmos(mut gizmos: Gizmos, basic_leg: Query<(&IkChain, &BasicLeg)>) {
-    if let Ok((chain, leg)) = basic_leg.get_single() {
+fn draw_leg_gizmos(mut gizmos: Gizmos, basic_legs: Query<(&IkChain, &BasicLeg)>) {
+    for (chain, leg) in basic_legs.iter() {
         draw_target(
             &mut gizmos,
             chain.start + leg.target_offset,

@@ -60,6 +60,10 @@ impl IkChain {
             length: self.lengths[index],
         }
     }
+
+    pub fn move_start(&mut self, delta: Vec3) {
+        self.start += delta;
+    }
 }
 
 struct ChainSegment {

@@ -64,25 +64,25 @@ fn spawn_spider_legs(spider: &mut ChildBuilder) {
     ];
 
     let legs_data = [
-        LegSpawnInfo::new(vec3(0.5, 0.0, -0.5), 0.0, 1),
-        LegSpawnInfo::new(vec3(0.5, 0.0, 0.5), 0.0, 2),
-        LegSpawnInfo::new(vec3(-0.5, 0.0, -0.5), 180.0, 2),
-        LegSpawnInfo::new(vec3(-0.5, 0.0, 0.5), 180.0, 1),
+        LegSpawnInfo::new(vec3(0.5, 0.0, -0.5), 20.0, 1),
+        LegSpawnInfo::new(vec3(0.5, 0.0, 0.5), -20.0, 2),
+        LegSpawnInfo::new(vec3(-0.5, 0.0, -0.5), 160.0, 2),
+        LegSpawnInfo::new(vec3(-0.5, 0.0, 0.5), 200.0, 1),
     ];
 
     for data in legs_data.iter() {
-        let rotation = Quat::from_axis_angle(Vec3::Y, data.angle_offset);
+        let rotation = Quat::from_axis_angle(Vec3::Y, data.angle_offset.to_radians());
         let points_of_current_leg = base_points
             .iter()
             .map(|point| SPAWN_POSITION + data.position_offset + (rotation * *point))
             .collect();
 
         let start = base_points[0];
-        let target = start + LEG_TARGET_OFFSET;
+        let target = start + (rotation * LEG_TARGET_OFFSET);
 
         spider.spawn((
             IkChain::new(points_of_current_leg),
-            BasicLeg::new(LEG_TARGET_OFFSET, target),
+            BasicLeg::new(rotation * LEG_TARGET_OFFSET, target),
             SpiderLeg {
                 movement_group: data.movement_group,
             },
@@ -91,14 +91,25 @@ fn spawn_spider_legs(spider: &mut ChildBuilder) {
 }
 
 fn move_from_input(
-    mut spider_transform: Query<&mut Transform, With<Spider>>,
+    mut spider: Query<(&mut Transform, &Children), With<Spider>>,
+    mut spider_legs: Query<&mut IkChain, With<SpiderLeg>>,
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    if let Ok(mut transform) = spider_transform.get_single_mut() {
+    if let Ok((mut transform, children)) = spider.get_single_mut() {
         let move_input = get_wasd_input_as_vector(&input);
+        let delta_position = move_input * time.delta_seconds() * MOVE_SPEED;
 
-        transform.translation += move_input * time.delta_seconds() * MOVE_SPEED;
+        transform.translation += delta_position;
+
+        // println!("Children: {:?}", children);
+
+        for &child_id in children.iter() {
+            if let Ok(mut leg) = spider_legs.get_mut(child_id) {
+                println!("Child leg found");
+                leg.move_start(delta_position);
+            }
+        }
     }
 }
 
