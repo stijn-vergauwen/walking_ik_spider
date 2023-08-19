@@ -4,9 +4,9 @@ use super::{solve_chain_towards_target, IkChain};
 
 const TARGET_RADIUS: f32 = 0.7;
 const TARGET_COLOR: Color = Color::LIME_GREEN;
-const TARGET_MOVE_SPEED: f32 = 2.0;
+const TARGET_MOVE_SPEED: f32 = 8.0;
 
-const FABRIK_ITERATIONS: i32 = 1;
+const FABRIK_ITERATIONS: i32 = 10;
 
 pub struct IkLegPlugin;
 
@@ -43,10 +43,11 @@ fn spawn_test_leg(mut commands: Commands) {
 fn move_test_leg_to_target(
     mut test_leg: Query<&mut IkChain, With<TestLeg>>,
     test_target: Query<&GlobalTransform, With<TestTarget>>,
+    mut gizmos: Gizmos
 ) {
     if let Ok(mut leg) = test_leg.get_single_mut() {
         if let Ok(target) = test_target.get_single() {
-            solve_chain_towards_target(&mut leg, target.translation(), FABRIK_ITERATIONS);
+            solve_chain_towards_target(&mut leg, target.translation(), FABRIK_ITERATIONS, &mut gizmos);
         }
     }
 }
@@ -87,6 +88,12 @@ fn get_wasd_input_as_vector(input: &Res<Input<KeyCode>>) -> Vec3 {
     }
     if input.pressed(KeyCode::D) {
         result.x += 1.0;
+    }
+    if input.pressed(KeyCode::R) {
+        result.y += 1.0;
+    }
+    if input.pressed(KeyCode::F) {
+        result.y -= 1.0;
     }
 
     result.normalize_or_zero()
