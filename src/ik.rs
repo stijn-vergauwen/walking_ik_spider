@@ -107,13 +107,13 @@ fn backward_fabrik_pass(chain: &mut IkChain, target: Vec3) {
 
 fn constrain_chain_orientation(chain: &mut IkChain, gizmos: &mut Gizmos) {
     // After learning about rotations and asking chat-gpt, here's my plan:
-    // 1. use the first and last points to calculate the leg's local orientation, where the leg points in the positive z direction
+    // 1. use the first and last points to calculate the leg's local orientation (the leg points in the negative z direction)
     // 2. calculate the orientation from the first point to the middle joint
-    // 3. get the delta quaternion and convert it to scaled axis-angle
-    // 4. get the y component of this delta angle
-    // 5. rotate the direction to the middle joint so the y direction is the same
+    // 3. get the delta quaternion and convert it to euler angle
+    // 4. get the delta components to constrain (y & x)
+    // 5. adjust the quaternion towards the middle joint by these delta components so it aligns with the leg's orientation
     // 6. place the middle joint on this new position
-    // 7. repeat for each middle joint
+    // 7. repeat for each middle joint <- this last part isn't implemented, but also not needed in this case
 
     let first_point = chain.points[0];
     let last_point = chain.points[chain.points.len() - 1];
@@ -140,11 +140,8 @@ fn constrain_chain_orientation(chain: &mut IkChain, gizmos: &mut Gizmos) {
     // place middle point on new position
     chain.points[1] = first_point + adjusted_orientation * (Vec3::NEG_Z * segment.length);
 
-    // println!("{:?}", delta_euler);
-    // println!("Lengths: {:?}", chain.lengths);
-
+    // For debugging and visualizing
     if DRAW_ORIENTATION_GIZMOS {
-        // Debug gizmos
         let gizmo_point = first_point;
         let gizmo_orientation = leg_orientation;
     
