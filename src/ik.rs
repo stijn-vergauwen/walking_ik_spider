@@ -2,8 +2,6 @@ mod leg;
 
 use bevy::prelude::*;
 
-use leg::IkLegPlugin;
-
 const POINT_RADIUS: f32 = 0.5;
 const POINT_COLOR: Color = Color::PURPLE;
 const SEGMENT_COLOR: Color = Color::CYAN;
@@ -15,8 +13,7 @@ pub struct IkPlugin;
 
 impl Plugin for IkPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(IkLegPlugin)
-            .add_systems(Update, draw_ik_chain_gizmos);
+        app.add_systems(Update, draw_ik_chain_gizmos);
     }
 }
 
@@ -144,14 +141,14 @@ fn constrain_chain_orientation(chain: &mut IkChain, gizmos: &mut Gizmos) {
     if DRAW_ORIENTATION_GIZMOS {
         let gizmo_point = first_point;
         let gizmo_orientation = leg_orientation;
-    
+
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::X, Color::GREEN);
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Y, Color::RED);
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Z, Color::BLUE);
-    
+
         let gizmo_point = first_point;
         let gizmo_orientation = joint_orientation;
-    
+
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::X, Color::GREEN);
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Y, Color::RED);
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Z, Color::BLUE);
@@ -193,7 +190,7 @@ fn draw_ik_chain_gizmos(mut gizmos: Gizmos, ik_chains: Query<&IkChain>) {
             for point in chain.points.iter() {
                 gizmos.sphere(*point, Quat::IDENTITY, POINT_RADIUS, POINT_COLOR);
             }
-    
+
             for index in 0..chain.points.len() - 1 {
                 let segment = chain.get_segment(index);
                 gizmos.line(segment.start, segment.end, SEGMENT_COLOR);
