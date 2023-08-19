@@ -4,9 +4,11 @@ use super::{solve_chain_towards_target, IkChain};
 
 const TARGET_RADIUS: f32 = 0.7;
 const TARGET_COLOR: Color = Color::LIME_GREEN;
-const TARGET_MOVE_SPEED: f32 = 8.0;
+// const TARGET_MOVE_SPEED: f32 = 5.0;
 
-const FABRIK_ITERATIONS: i32 = 10;
+const FABRIK_ITERATIONS: i32 = 6;
+
+const LEG_BASE_MOVE_SPEED: f32 = 4.0;
 
 pub struct IkLegPlugin;
 
@@ -16,9 +18,10 @@ impl Plugin for IkLegPlugin {
             .add_systems(
                 Update,
                 (
-                    move_test_target_from_input,
+                    // move_test_target_from_input,
                     move_test_leg_to_target,
                     draw_test_target_gizmo,
+                    move_leg_base_from_input
                 ),
             );
     }
@@ -62,15 +65,27 @@ fn spawn_test_target(mut commands: Commands) {
     ));
 }
 
-fn move_test_target_from_input(
-    mut test_target: Query<&mut Transform, With<TestTarget>>,
+// fn move_test_target_from_input(
+//     mut test_target: Query<&mut Transform, With<TestTarget>>,
+//     input: Res<Input<KeyCode>>,
+//     time: Res<Time>,
+// ) {
+//     if let Ok(mut transform) = test_target.get_single_mut() {
+//         let move_input = get_wasd_input_as_vector(&input);
+
+//         transform.translation += move_input * time.delta_seconds() * TARGET_MOVE_SPEED;
+//     }
+// }
+
+fn move_leg_base_from_input(
+    mut chain: Query<&mut IkChain, With<TestLeg>>,
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    if let Ok(mut transform) = test_target.get_single_mut() {
+    if let Ok(mut chain) = chain.get_single_mut() {
         let move_input = get_wasd_input_as_vector(&input);
 
-        transform.translation += move_input * time.delta_seconds() * TARGET_MOVE_SPEED;
+        chain.start += move_input * time.delta_seconds() * LEG_BASE_MOVE_SPEED;
     }
 }
 
