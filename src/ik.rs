@@ -22,7 +22,7 @@ impl Plugin for IkPlugin {
 
 #[derive(Component)]
 pub struct IkChain {
-    start: Vec3,
+    pub start: Vec3,
     points: Vec<Vec3>,
     lengths: Vec<f32>,
 }

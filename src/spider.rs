@@ -8,6 +8,7 @@ const SPAWN_POSITION: Vec3 = Vec3::new(-2.0, 1.0, 2.0);
 const MOVE_SPEED: f32 = 4.0;
 
 const LEG_TARGET_OFFSET: Vec3 = Vec3::new(4.0, -0.5, 0.0);
+const LEG_ERROR_THRESHOLD: f32 = 10.0;
 
 const BODY_COLOR: Color = Color::BLACK;
 
@@ -16,12 +17,15 @@ pub struct SpiderPlugin;
 impl Plugin for SpiderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_spider)
-            .add_systems(Update, (move_from_input, draw_spider));
+            .add_systems(Update, (move_from_input, draw_spider, update_leg_error));
     }
 }
 
 #[derive(Component)]
-struct Spider;
+struct Spider {
+    combined_leg_position_error: f32,
+    last_movement_group: u8,
+}
 
 #[derive(Component)]
 struct SpiderLeg {
@@ -47,7 +51,10 @@ impl LegSpawnInfo {
 fn spawn_spider(mut commands: Commands) {
     commands
         .spawn((
-            Spider,
+            Spider {
+                combined_leg_position_error: 0.0,
+                last_movement_group: 2,
+            },
             TransformBundle {
                 local: Transform::from_translation(SPAWN_POSITION),
                 ..default()
@@ -132,6 +139,46 @@ fn get_wasd_input_as_vector(input: &Res<Input<KeyCode>>) -> Vec3 {
 
     result.normalize_or_zero()
 }
+
+fn update_leg_error(
+    mut spider: Query<(&mut Spider, &Children)>,
+    spider_legs: Query<(&IkChain, &BasicLeg), With<SpiderLeg>>,
+) {
+    if let Ok((mut spider, children)) = spider.get_single_mut() {
+        let mut combined_error: f32 = 0.0;
+
+        for &child_id in children.iter() {
+            if let Ok((chain, leg)) = spider_legs.get(child_id) {
+                let target_pos = chain.start + leg.target_offset;
+                let current_pos = leg.current_target;
+
+                combined_error += target_pos.distance(current_pos);
+            }
+        }
+
+        // Alternative using iterators
+        // let combined_error = children
+        //     .iter()
+        //     .filter_map(|&child| spider_legs.get(child).ok())
+        //     .fold(0.0, |combined, (chain, leg)| {
+        //         let target_pos = chain.start + leg.target_offset;
+        //         let current_pos = leg.current_target;
+
+        //         combined + target_pos.distance(current_pos)
+        //     });
+
+        spider.combined_leg_position_error = combined_error;
+
+        println!("Total leg error: {}", spider.combined_leg_position_error);
+    }
+}
+
+// fn retarget_if_threshold_reached(
+//     spider: Query<(&Spider, &Children)>,
+//     mut spider_legs: Query<(&IkChain, &mut BasicLeg), With<SpiderLeg>>,
+// ) {
+
+// }
 
 // Gizmos
 
