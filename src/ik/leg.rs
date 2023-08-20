@@ -11,7 +11,7 @@ const CURRENT_TARGET_COLOR: Color = Color::LIME_GREEN;
 
 const FABRIK_ITERATIONS: i32 = 6;
 
-const LERP_SPEED: f32 = 4.0;
+const LERP_SPEED: f32 = 8.0;
 
 // const LEG_BASE_MOVE_SPEED: f32 = 4.0;
 
@@ -71,6 +71,12 @@ impl AnimatedLeg {
 
     fn increase_lerp_fraction(&mut self, delta: f32) {
         self.lerp_fraction = (self.lerp_fraction + delta).min(1.0);
+    }
+
+    pub fn set_new_target(&mut self, target: Vec3) {
+        self.previous_target = self.current_target;
+        self.current_target = target;
+        self.lerp_fraction = 0.0;
     }
 }
 

@@ -2,13 +2,13 @@ use std::f32::consts::PI;
 
 use bevy::{math::vec3, prelude::*};
 
-use crate::ik::{leg::BasicLeg, IkChain};
+use crate::ik::{leg::AnimatedLeg, IkChain};
 
 const SPAWN_POSITION: Vec3 = Vec3::new(-2.0, 1.0, 2.0);
-const MOVE_SPEED: f32 = 4.0;
+const MOVE_SPEED: f32 = 6.0;
 
 const LEG_TARGET_OFFSET: Vec3 = Vec3::new(4.0, -0.5, 0.0);
-const LEG_ERROR_THRESHOLD: f32 = 10.0;
+const LEG_ERROR_THRESHOLD: f32 = 12.0;
 
 const BODY_COLOR: Color = Color::BLACK;
 
@@ -109,7 +109,7 @@ fn spawn_spider_legs(spider: &mut ChildBuilder) {
 
         spider.spawn((
             IkChain::new(points_of_current_leg),
-            BasicLeg::new(rotation * LEG_TARGET_OFFSET, target),
+            AnimatedLeg::new(rotation * LEG_TARGET_OFFSET, target),
             SpiderLeg {
                 movement_group: data.movement_group,
             },
@@ -158,7 +158,7 @@ fn get_wasd_input_as_vector(input: &Res<Input<KeyCode>>) -> Vec3 {
 
 fn update_leg_error(
     mut spider: Query<(&mut Spider, &Children)>,
-    spider_legs: Query<(&IkChain, &BasicLeg), With<SpiderLeg>>,
+    spider_legs: Query<(&IkChain, &AnimatedLeg), With<SpiderLeg>>,
 ) {
     if let Ok((mut spider, children)) = spider.get_single_mut() {
         // let mut combined_error: f32 = 0.0;
@@ -177,7 +177,7 @@ fn update_leg_error(
             .iter()
             .filter_map(|&child| spider_legs.get(child).ok())
             .fold(0.0, |combined, (chain, leg)| {
-                combined + (chain.start + leg.target_offset).distance(leg.current_target)
+                combined + (chain.start + leg.reposition_target_offset).distance(leg.current_target)
             });
 
         spider.combined_leg_position_error = combined_error;
@@ -188,7 +188,7 @@ fn update_leg_error(
 
 fn retarget_if_threshold_reached(
     mut spider: Query<(&mut Spider, &Children)>,
-    mut spider_legs: Query<(&IkChain, &mut BasicLeg, &SpiderLeg)>,
+    mut spider_legs: Query<(&IkChain, &mut AnimatedLeg, &SpiderLeg)>,
 ) {
     if let Ok((mut spider, children)) = spider.get_single_mut() {
         if spider.combined_leg_position_error > LEG_ERROR_THRESHOLD {
@@ -201,7 +201,8 @@ fn retarget_if_threshold_reached(
                 if let Ok((chain, mut leg, spider_leg)) = spider_legs.get_mut(child_id) {
                     if spider_leg.movement_group == spider.last_movement_group {
                         // println!("Retarget!");
-                        leg.current_target = chain.start + leg.target_offset;
+                        let target = chain.start + leg.reposition_target_offset;
+                        leg.set_new_target(target);
                     }
                 }
             }

@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use leg::IkLegPlugin;
 
-const POINT_RADIUS: f32 = 0.5;
+const POINT_RADIUS: f32 = 0.3;
 const POINT_COLOR: Color = Color::PURPLE;
 const SEGMENT_COLOR: Color = Color::CYAN;
 
