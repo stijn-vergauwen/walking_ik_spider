@@ -7,7 +7,7 @@ use crate::ik::{leg::BasicLeg, IkChain};
 const SPAWN_POSITION: Vec3 = Vec3::new(-2.0, 1.0, 2.0);
 const MOVE_SPEED: f32 = 4.0;
 
-const LEG_TARGET_OFFSET: Vec3 = Vec3::new(2.0, -0.5, 0.0);
+const LEG_TARGET_OFFSET: Vec3 = Vec3::new(4.0, -0.5, 0.0);
 
 const BODY_COLOR: Color = Color::BLACK;
 
@@ -59,15 +59,19 @@ fn spawn_spider(mut commands: Commands) {
 fn spawn_spider_legs(spider: &mut ChildBuilder) {
     let base_points = vec![
         Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(1.0, 2.0, 0.0),
+        Vec3::new(1.0, 3.0, 0.0),
         Vec3::new(2.0, 0.0, 0.0),
     ];
 
     let legs_data = [
-        LegSpawnInfo::new(vec3(0.5, 0.0, -0.5), 20.0, 1),
-        LegSpawnInfo::new(vec3(0.5, 0.0, 0.5), -20.0, 2),
-        LegSpawnInfo::new(vec3(-0.5, 0.0, -0.5), 160.0, 2),
-        LegSpawnInfo::new(vec3(-0.5, 0.0, 0.5), 200.0, 1),
+        LegSpawnInfo::new(vec3(0.5, 0.0, -0.8), 40.0, 1),
+        LegSpawnInfo::new(vec3(0.5, 0.0, -0.4), 10.0, 2),
+        LegSpawnInfo::new(vec3(0.5, 0.0, 0.4), -10.0, 1),
+        LegSpawnInfo::new(vec3(0.5, 0.0, 0.8), -40.0, 2),
+        LegSpawnInfo::new(vec3(-0.5, 0.0, -0.8), 140.0, 2),
+        LegSpawnInfo::new(vec3(-0.5, 0.0, -0.4), 170.0, 1),
+        LegSpawnInfo::new(vec3(-0.5, 0.0, 0.4), 190.0, 2),
+        LegSpawnInfo::new(vec3(-0.5, 0.0, 0.8), 220.0, 1),
     ];
 
     for data in legs_data.iter() {
@@ -102,11 +106,8 @@ fn move_from_input(
 
         transform.translation += delta_position;
 
-        // println!("Children: {:?}", children);
-
         for &child_id in children.iter() {
             if let Ok(mut leg) = spider_legs.get_mut(child_id) {
-                println!("Child leg found");
                 leg.move_start(delta_position);
             }
         }
