@@ -16,8 +16,15 @@ pub struct SpiderPlugin;
 
 impl Plugin for SpiderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_spider)
-            .add_systems(Update, (move_from_input, draw_spider, update_leg_error));
+        app.add_systems(Startup, spawn_spider).add_systems(
+            Update,
+            (
+                move_from_input,
+                draw_spider,
+                update_leg_error,
+                retarget_if_threshold_reached,
+            ),
+        );
     }
 }
 
@@ -25,6 +32,15 @@ impl Plugin for SpiderPlugin {
 struct Spider {
     combined_leg_position_error: f32,
     last_movement_group: u8,
+}
+
+impl Spider {
+    fn switch_movement_group(&mut self) {
+        self.last_movement_group = match self.last_movement_group {
+            1 => 2,
+            _ => 1,
+        };
+    }
 }
 
 #[derive(Component)]
@@ -145,27 +161,24 @@ fn update_leg_error(
     spider_legs: Query<(&IkChain, &BasicLeg), With<SpiderLeg>>,
 ) {
     if let Ok((mut spider, children)) = spider.get_single_mut() {
-        let mut combined_error: f32 = 0.0;
+        // let mut combined_error: f32 = 0.0;
 
-        for &child_id in children.iter() {
-            if let Ok((chain, leg)) = spider_legs.get(child_id) {
-                let target_pos = chain.start + leg.target_offset;
-                let current_pos = leg.current_target;
-
-                combined_error += target_pos.distance(current_pos);
-            }
-        }
-
-        // Alternative using iterators
-        // let combined_error = children
-        //     .iter()
-        //     .filter_map(|&child| spider_legs.get(child).ok())
-        //     .fold(0.0, |combined, (chain, leg)| {
+        // for &child_id in children.iter() {
+        //     if let Ok((chain, leg)) = spider_legs.get(child_id) {
         //         let target_pos = chain.start + leg.target_offset;
         //         let current_pos = leg.current_target;
 
-        //         combined + target_pos.distance(current_pos)
-        //     });
+        //         combined_error += target_pos.distance(current_pos);
+        //     }
+        // }
+
+        // Alternative solution using iterators
+        let combined_error = children
+            .iter()
+            .filter_map(|&child| spider_legs.get(child).ok())
+            .fold(0.0, |combined, (chain, leg)| {
+                combined + (chain.start + leg.target_offset).distance(leg.current_target)
+            });
 
         spider.combined_leg_position_error = combined_error;
 
@@ -173,12 +186,28 @@ fn update_leg_error(
     }
 }
 
-// fn retarget_if_threshold_reached(
-//     spider: Query<(&Spider, &Children)>,
-//     mut spider_legs: Query<(&IkChain, &mut BasicLeg), With<SpiderLeg>>,
-// ) {
+fn retarget_if_threshold_reached(
+    mut spider: Query<(&mut Spider, &Children)>,
+    mut spider_legs: Query<(&IkChain, &mut BasicLeg, &SpiderLeg)>,
+) {
+    if let Ok((mut spider, children)) = spider.get_single_mut() {
+        if spider.combined_leg_position_error > LEG_ERROR_THRESHOLD {
+            spider.switch_movement_group();
+            println!("Last movement group: {}", spider.last_movement_group);
 
-// }
+            // get all legs of current movement group
+            // set their current target to new position
+            for &child_id in children.iter() {
+                if let Ok((chain, mut leg, spider_leg)) = spider_legs.get_mut(child_id) {
+                    if spider_leg.movement_group == spider.last_movement_group {
+                        println!("Retarget!");
+                        leg.current_target = chain.start + leg.target_offset;
+                    }
+                }
+            }
+        }
+    }
+}
 
 // Gizmos
 
