@@ -11,6 +11,8 @@ const CURRENT_TARGET_COLOR: Color = Color::LIME_GREEN;
 
 const FABRIK_ITERATIONS: i32 = 6;
 
+const LERP_SPEED: f32 = 4.0;
+
 // const LEG_BASE_MOVE_SPEED: f32 = 4.0;
 
 pub struct IkLegPlugin;
@@ -24,7 +26,9 @@ impl Plugin for IkLegPlugin {
                 (
                     // move_test_target_from_input,
                     move_basic_leg_to_target,
-                    draw_leg_gizmos,
+                    draw_basic_leg_gizmos,
+                    draw_animated_leg_gizmos,
+                    animate_leg_towards_target,
                     // move_leg_base_from_input,
                     // set_new_target_if_threshold_reached,
                 ),
@@ -44,6 +48,29 @@ impl BasicLeg {
             target_offset,
             current_target,
         }
+    }
+}
+
+#[derive(Component)]
+pub struct AnimatedLeg {
+    pub reposition_target_offset: Vec3,
+    pub previous_target: Vec3,
+    pub current_target: Vec3,
+    pub lerp_fraction: f32,
+}
+
+impl AnimatedLeg {
+    pub fn new(reposition_target_offset: Vec3, position: Vec3) -> Self {
+        AnimatedLeg {
+            reposition_target_offset,
+            previous_target: position,
+            current_target: position,
+            lerp_fraction: 0.0,
+        }
+    }
+
+    fn increase_lerp_fraction(&mut self, delta: f32) {
+        self.lerp_fraction = (self.lerp_fraction + delta).min(1.0);
     }
 }
 
@@ -70,6 +97,18 @@ fn move_basic_leg_to_target(mut basic_legs: Query<(&mut IkChain, &BasicLeg)>, mu
     for (mut chain, leg) in basic_legs.iter_mut() {
         let target = leg.current_target;
         solve_chain_towards_target(&mut chain, target, FABRIK_ITERATIONS, &mut gizmos);
+    }
+}
+
+fn animate_leg_towards_target(mut animated_legs: Query<(&mut IkChain, &mut AnimatedLeg)>, time: Res<Time>, mut gizmos: Gizmos) {
+    for (mut chain, mut leg) in animated_legs.iter_mut() {
+        // Increase lerp fraction
+        // Get current target position
+        // Call chain function
+
+        leg.increase_lerp_fraction(LERP_SPEED * time.delta_seconds());
+        let current_target = leg.previous_target.lerp(leg.current_target, leg.lerp_fraction);
+        solve_chain_towards_target(&mut chain, current_target, FABRIK_ITERATIONS, &mut gizmos);
     }
 }
 
@@ -123,11 +162,28 @@ fn move_basic_leg_to_target(mut basic_legs: Query<(&mut IkChain, &BasicLeg)>, mu
 
 // Gizmos
 
-fn draw_leg_gizmos(mut gizmos: Gizmos, basic_legs: Query<(&IkChain, &BasicLeg)>) {
+fn draw_basic_leg_gizmos(mut gizmos: Gizmos, basic_legs: Query<(&IkChain, &BasicLeg)>) {
     for (chain, leg) in basic_legs.iter() {
         draw_target(
             &mut gizmos,
             chain.start + leg.target_offset,
+            TARGET_RADIUS,
+            TARGET_COLOR,
+        );
+        draw_target(
+            &mut gizmos,
+            leg.current_target,
+            TARGET_RADIUS,
+            CURRENT_TARGET_COLOR,
+        );
+    }
+}
+
+fn draw_animated_leg_gizmos(mut gizmos: Gizmos, animated_legs: Query<(&IkChain, &AnimatedLeg)>) {
+    for (chain, leg) in animated_legs.iter() {
+        draw_target(
+            &mut gizmos,
+            chain.start + leg.reposition_target_offset,
             TARGET_RADIUS,
             TARGET_COLOR,
         );

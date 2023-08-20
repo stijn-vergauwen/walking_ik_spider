@@ -182,7 +182,7 @@ fn update_leg_error(
 
         spider.combined_leg_position_error = combined_error;
 
-        println!("Total leg error: {}", spider.combined_leg_position_error);
+        // println!("Total leg error: {}", spider.combined_leg_position_error);
     }
 }
 
@@ -193,14 +193,14 @@ fn retarget_if_threshold_reached(
     if let Ok((mut spider, children)) = spider.get_single_mut() {
         if spider.combined_leg_position_error > LEG_ERROR_THRESHOLD {
             spider.switch_movement_group();
-            println!("Last movement group: {}", spider.last_movement_group);
+            // println!("Last movement group: {}", spider.last_movement_group);
 
             // get all legs of current movement group
             // set their current target to new position
             for &child_id in children.iter() {
                 if let Ok((chain, mut leg, spider_leg)) = spider_legs.get_mut(child_id) {
                     if spider_leg.movement_group == spider.last_movement_group {
-                        println!("Retarget!");
+                        // println!("Retarget!");
                         leg.current_target = chain.start + leg.target_offset;
                     }
                 }
