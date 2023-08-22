@@ -11,7 +11,8 @@ const CURRENT_TARGET_COLOR: Color = Color::LIME_GREEN;
 
 const FABRIK_ITERATIONS: i32 = 6;
 
-const LERP_SPEED: f32 = 8.0;
+const LERP_SPEED: f32 = 6.0;
+const CURVE_HEIGHT: f32 = 0.7;
 
 // const LEG_BASE_MOVE_SPEED: f32 = 4.0;
 
@@ -106,15 +107,29 @@ fn move_basic_leg_to_target(mut basic_legs: Query<(&mut IkChain, &BasicLeg)>, mu
     }
 }
 
-fn animate_leg_towards_target(mut animated_legs: Query<(&mut IkChain, &mut AnimatedLeg)>, time: Res<Time>, mut gizmos: Gizmos) {
+fn animate_leg_towards_target(
+    mut animated_legs: Query<(&mut IkChain, &mut AnimatedLeg)>,
+    time: Res<Time>,
+    mut gizmos: Gizmos,
+) {
     for (mut chain, mut leg) in animated_legs.iter_mut() {
-        // Increase lerp fraction
-        // Get current target position
-        // Call chain function
-
         leg.increase_lerp_fraction(LERP_SPEED * time.delta_seconds());
-        let current_target = leg.previous_target.lerp(leg.current_target, leg.lerp_fraction);
-        solve_chain_towards_target(&mut chain, current_target, FABRIK_ITERATIONS, &mut gizmos);
+
+        let start = leg.previous_target;
+        let end = leg.current_target;
+        let distance = start.distance(end);
+        let curve_anchor = start.lerp(end, 0.5) + Vec3::Y * distance * CURVE_HEIGHT; // This is the point in the air to lerp upwards
+
+        let start_to_anchor = start.lerp(curve_anchor, leg.lerp_fraction);
+        let anchor_to_end = curve_anchor.lerp(end, leg.lerp_fraction);
+        let interpolated_target = start_to_anchor.lerp(anchor_to_end, leg.lerp_fraction);
+
+        solve_chain_towards_target(
+            &mut chain,
+            interpolated_target,
+            FABRIK_ITERATIONS,
+            &mut gizmos,
+        );
     }
 }
 
