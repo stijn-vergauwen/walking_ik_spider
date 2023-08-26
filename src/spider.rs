@@ -1,5 +1,3 @@
-use std::f32::consts::PI;
-
 use bevy::{math::vec3, prelude::*};
 
 use crate::ik::{leg::AnimatedLeg, IkChain};
@@ -20,7 +18,6 @@ impl Plugin for SpiderPlugin {
             Update,
             (
                 move_from_input,
-                draw_spider,
                 update_leg_error,
                 retarget_if_threshold_reached,
             ),
@@ -31,12 +28,12 @@ impl Plugin for SpiderPlugin {
 #[derive(Component)]
 pub struct Spider {
     combined_leg_position_error: f32,
-    last_movement_group: u8,
+    movement_group: u8,
 }
 
 impl Spider {
     fn switch_movement_group(&mut self) {
-        self.last_movement_group = match self.last_movement_group {
+        self.movement_group = match self.movement_group {
             1 => 2,
             _ => 1,
         };
@@ -64,15 +61,29 @@ impl LegSpawnInfo {
     }
 }
 
-fn spawn_spider(mut commands: Commands) {
+fn spawn_spider(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let mesh = meshes.add(shape::Box::new(1.2, 0.6, 1.6).into());
+
+    let material = materials.add(StandardMaterial {
+        base_color: BODY_COLOR,
+        perceptual_roughness: 1.0,
+        ..default()
+    });
+
     commands
         .spawn((
             Spider {
                 combined_leg_position_error: 0.0,
-                last_movement_group: 2,
+                movement_group: 2,
             },
-            TransformBundle {
-                local: Transform::from_translation(SPAWN_POSITION),
+            PbrBundle {
+                transform: Transform::from_translation(SPAWN_POSITION),
+                mesh,
+                material,
                 ..default()
             },
         ))
@@ -123,16 +134,16 @@ fn move_from_input(
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    if let Ok((mut transform, children)) = spider.get_single_mut() {
-        let move_input = get_wasd_input_as_vector(&input);
-        let delta_position = move_input * time.delta_seconds() * MOVE_SPEED;
+    let (mut transform, children) = spider.single_mut();
 
-        transform.translation += delta_position;
+    let move_input = get_wasd_input_as_vector(&input);
+    let delta_position = move_input * time.delta_seconds() * MOVE_SPEED;
 
-        for &child_id in children.iter() {
-            if let Ok(mut leg) = spider_legs.get_mut(child_id) {
-                leg.move_start(delta_position);
-            }
+    transform.translation += delta_position;
+
+    for &child_id in children.iter() {
+        if let Ok(mut leg) = spider_legs.get_mut(child_id) {
+            leg.move_start(delta_position);
         }
     }
 }
@@ -160,65 +171,36 @@ fn update_leg_error(
     mut spider: Query<(&mut Spider, &Children)>,
     spider_legs: Query<(&IkChain, &AnimatedLeg), With<SpiderLeg>>,
 ) {
-    if let Ok((mut spider, children)) = spider.get_single_mut() {
-        // let mut combined_error: f32 = 0.0;
+    let (mut spider, children) = spider.single_mut();
 
-        // for &child_id in children.iter() {
-        //     if let Ok((chain, leg)) = spider_legs.get(child_id) {
-        //         let target_pos = chain.start + leg.target_offset;
-        //         let current_pos = leg.current_target;
+    let combined_error = children
+        .iter()
+        .filter_map(|&child| spider_legs.get(child).ok())
+        .fold(0.0, |combined, (chain, leg)| {
+            combined + (chain.start + leg.reposition_target_offset).distance(leg.current_target)
+        });
 
-        //         combined_error += target_pos.distance(current_pos);
-        //     }
-        // }
-
-        // Alternative solution using iterators
-        let combined_error = children
-            .iter()
-            .filter_map(|&child| spider_legs.get(child).ok())
-            .fold(0.0, |combined, (chain, leg)| {
-                combined + (chain.start + leg.reposition_target_offset).distance(leg.current_target)
-            });
-
-        spider.combined_leg_position_error = combined_error;
-
-        // println!("Total leg error: {}", spider.combined_leg_position_error);
-    }
+    spider.combined_leg_position_error = combined_error;
 }
 
 fn retarget_if_threshold_reached(
     mut spider: Query<(&mut Spider, &Children)>,
     mut spider_legs: Query<(&IkChain, &mut AnimatedLeg, &SpiderLeg)>,
 ) {
-    if let Ok((mut spider, children)) = spider.get_single_mut() {
-        if spider.combined_leg_position_error > LEG_ERROR_THRESHOLD {
-            spider.switch_movement_group();
-            // println!("Last movement group: {}", spider.last_movement_group);
+    let (mut spider, children) = spider.single_mut();
 
-            // get all legs of current movement group
-            // set their current target to new position
-            for &child_id in children.iter() {
-                if let Ok((chain, mut leg, spider_leg)) = spider_legs.get_mut(child_id) {
-                    if spider_leg.movement_group == spider.last_movement_group {
-                        // println!("Retarget!");
-                        let target = chain.start + leg.reposition_target_offset;
-                        leg.set_new_target(target);
-                    }
+    if spider.combined_leg_position_error > LEG_ERROR_THRESHOLD {
+        spider.switch_movement_group();
+
+        // get all legs of current movement group
+        // set their current target to new position
+        for &child_id in children.iter() {
+            if let Ok((chain, mut leg, spider_leg)) = spider_legs.get_mut(child_id) {
+                if spider_leg.movement_group == spider.movement_group {
+                    let target = chain.start + leg.reposition_target_offset;
+                    leg.set_new_target(target);
                 }
             }
         }
-    }
-}
-
-// Gizmos
-
-fn draw_spider(mut gizmos: Gizmos, spider: Query<&Transform, With<Spider>>) {
-    if let Ok(transform) = spider.get_single() {
-        gizmos.rect(
-            transform.translation,
-            Quat::from_rotation_x(PI / 2.0),
-            Vec2::new(1.0, 1.0),
-            BODY_COLOR,
-        );
     }
 }
