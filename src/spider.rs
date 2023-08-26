@@ -29,7 +29,7 @@ impl Plugin for SpiderPlugin {
 }
 
 #[derive(Component)]
-struct Spider {
+pub struct Spider {
     combined_leg_position_error: f32,
     last_movement_group: u8,
 }
