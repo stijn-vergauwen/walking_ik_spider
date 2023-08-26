@@ -85,7 +85,7 @@ fn spawn_spider(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mesh = meshes.add(shape::Box::new(1.2, 0.6, 1.6).into());
+    let mesh = meshes.add(shape::Box::new(1.4, 0.8, 1.8).into());
 
     let material = materials.add(StandardMaterial {
         base_color: BODY_COLOR,
