@@ -2,6 +2,7 @@ mod camera;
 pub mod ik;
 mod world;
 mod spider;
+mod rotations;
 
 use bevy::{prelude::*, window};
 use camera::CameraPlugin;
