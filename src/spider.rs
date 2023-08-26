@@ -1,6 +1,9 @@
 use bevy::{math::vec3, prelude::*};
 
-use crate::ik::{leg::AnimatedLeg, IkChain};
+use crate::{
+    ik::{leg::AnimatedLeg, IkChain},
+    rotations,
+};
 
 const SPAWN_POSITION: Vec3 = Vec3::new(-2.0, 1.0, 2.0);
 const MOVE_SPEED: f32 = 6.0;
@@ -21,6 +24,7 @@ impl Plugin for SpiderPlugin {
                 move_from_input,
                 update_leg_error,
                 retarget_if_threshold_reached,
+                position_leg_pieces_on_chain,
             ),
         );
     }
@@ -64,12 +68,15 @@ impl LegSpawnInfo {
 
 #[derive(Component)]
 struct LegPiece {
-    position_in_chain: u8,
+    /// what chain segment this leg piece belongs to
+    index_in_chain: u8,
 }
 
 impl LegPiece {
     fn new(position_in_chain: u8) -> Self {
-        Self { position_in_chain }
+        Self {
+            index_in_chain: position_in_chain,
+        }
     }
 }
 
@@ -107,7 +114,7 @@ fn spawn_spider_legs(
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
-    let mesh = meshes.add(shape::Box::new(0.2, 0.2, 3.0).into());
+    let mesh = meshes.add(shape::Box::new(0.2, 0.2, 3.2).into());
 
     let material = materials.add(StandardMaterial {
         base_color: LEGS_COLOR,
@@ -252,6 +259,29 @@ fn retarget_if_threshold_reached(
                     let target = chain.start + leg.reposition_target_offset;
                     leg.set_new_target(target);
                 }
+            }
+        }
+    }
+}
+
+/// updates the position of the leg piece objects on the chain they belong to
+fn position_leg_pieces_on_chain(
+    spider_legs: Query<(&IkChain, &GlobalTransform, &Children), With<SpiderLeg>>,
+    mut leg_pieces: Query<(&LegPiece, &mut Transform)>,
+) {
+    for (chain, global_transform, children) in spider_legs.iter() {
+        for &child_id in children.iter() {
+            if let Ok((leg, mut transform)) = leg_pieces.get_mut(child_id) {
+                let segment = chain.get_segment(leg.index_in_chain as usize);
+
+                let segment_direction = (segment.end - segment.start).normalize_or_zero();
+                let segment_orientation = rotations::looking_towards(segment_direction, Vec3::Y);
+                let segment_middle = segment.start + segment_direction * segment.length / 2.0;
+
+                let local_position = segment_middle - global_transform.translation();
+
+                transform.translation = local_position;
+                transform.rotation = segment_orientation;
             }
         }
     }

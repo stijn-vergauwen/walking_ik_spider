@@ -24,6 +24,7 @@ impl Plugin for IkPlugin {
 
 #[derive(Component)]
 pub struct IkChain {
+    /// Position this chain starts at, in world space
     pub start: Vec3,
     points: Vec<Vec3>,
     lengths: Vec<f32>,
@@ -47,7 +48,7 @@ impl IkChain {
         }
     }
 
-    fn get_segment(&self, index: usize) -> ChainSegment {
+    pub fn get_segment(&self, index: usize) -> ChainSegment {
         if index >= self.points.len() - 1 {
             panic!(
                 "Invalid index! get_segment called with index: {}, but only {} points",
@@ -63,15 +64,16 @@ impl IkChain {
         }
     }
 
+    /// Move the start position by the given delta
     pub fn move_start(&mut self, delta: Vec3) {
         self.start += delta;
     }
 }
 
-struct ChainSegment {
-    start: Vec3,
-    end: Vec3,
-    length: f32,
+pub struct ChainSegment {
+    pub start: Vec3,
+    pub end: Vec3,
+    pub length: f32,
 }
 
 fn solve_chain_towards_target(
