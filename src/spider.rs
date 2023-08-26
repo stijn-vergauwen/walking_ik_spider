@@ -9,6 +9,7 @@ const LEG_TARGET_OFFSET: Vec3 = Vec3::new(4.0, -0.5, 0.0);
 const LEG_ERROR_THRESHOLD: f32 = 12.0;
 
 const BODY_COLOR: Color = Color::BLACK;
+const LEGS_COLOR: Color = Color::RED;
 
 pub struct SpiderPlugin;
 
@@ -61,6 +62,17 @@ impl LegSpawnInfo {
     }
 }
 
+#[derive(Component)]
+struct LegPiece {
+    position_in_chain: u8,
+}
+
+impl LegPiece {
+    fn new(position_in_chain: u8) -> Self {
+        Self { position_in_chain }
+    }
+}
+
 fn spawn_spider(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -87,10 +99,22 @@ fn spawn_spider(
                 ..default()
             },
         ))
-        .with_children(|spider| spawn_spider_legs(spider));
+        .with_children(|spider| spawn_spider_legs(spider, &mut meshes, &mut materials));
 }
 
-fn spawn_spider_legs(spider: &mut ChildBuilder) {
+fn spawn_spider_legs(
+    spider: &mut ChildBuilder,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+) {
+    let mesh = meshes.add(shape::Box::new(0.2, 0.2, 3.0).into());
+
+    let material = materials.add(StandardMaterial {
+        base_color: LEGS_COLOR,
+        perceptual_roughness: 1.0,
+        ..default()
+    });
+
     let base_points = vec![
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(1.0, 3.0, 0.0),
@@ -118,13 +142,41 @@ fn spawn_spider_legs(spider: &mut ChildBuilder) {
         let start = base_points[0];
         let target = start + (rotation * LEG_TARGET_OFFSET);
 
-        spider.spawn((
-            IkChain::new(points_of_current_leg),
-            AnimatedLeg::new(rotation * LEG_TARGET_OFFSET, target),
-            SpiderLeg {
-                movement_group: data.movement_group,
-            },
-        ));
+        spider
+            .spawn((
+                IkChain::new(points_of_current_leg),
+                AnimatedLeg::new(rotation * LEG_TARGET_OFFSET, target),
+                SpiderLeg {
+                    movement_group: data.movement_group,
+                },
+                TransformBundle::default(),
+                VisibilityBundle::default(),
+            ))
+            .with_children(|chain| {
+                // Upper leg
+                chain.spawn((
+                    PbrBundle {
+                        // Position is wrong but it gets fixed in the first update
+                        transform: Transform::from_translation(SPAWN_POSITION),
+                        mesh: mesh.clone(),
+                        material: material.clone(),
+                        ..default()
+                    },
+                    LegPiece::new(0),
+                ));
+
+                // Lower leg
+                chain.spawn((
+                    PbrBundle {
+                        // Position is wrong but it gets fixed in the first update
+                        transform: Transform::from_translation(SPAWN_POSITION),
+                        mesh: mesh.clone(),
+                        material: material.clone(),
+                        ..default()
+                    },
+                    LegPiece::new(1),
+                ));
+            });
     }
 }
 
