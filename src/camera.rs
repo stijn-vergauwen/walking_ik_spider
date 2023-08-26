@@ -5,6 +5,9 @@ use crate::{rotations, spider::Spider};
 const FOLLOW_DISTANCE: f32 = 10.0;
 const SPAWN_POSITION: Vec3 = Vec3::new(0.0, 6.0, 10.0);
 
+const MOVE_LERP_VALUE: f32 = 0.05;
+const ROTATE_LERP_VALUE: f32 = 0.1;
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
@@ -71,22 +74,27 @@ fn update_target_rotation(
     let (mut camera, camera_transform) = spider_camera.single_mut();
     let spider = spider.single();
 
-    let target_rotation = rotations::looking_at(camera_transform.translation, spider.translation, Vec3::Y);
+    let target_rotation =
+        rotations::looking_at(camera_transform.translation, spider.translation, Vec3::Y);
     camera.target_rotation = target_rotation;
 }
 
 fn move_towards_spider(mut spider_camera: Query<(&SpiderCamera, &mut Transform)>) {
     let (camera, mut camera_transform) = spider_camera.single_mut();
 
-    camera_transform.translation = camera.target_position;
+    let current_pos = camera_transform.translation;
+    let target_pos = camera.target_position;
+
+    camera_transform.translation = current_pos.lerp(target_pos, MOVE_LERP_VALUE);
 }
 
-fn rotate_towards_spider(
-    mut spider_camera: Query<(&mut Transform, &SpiderCamera)>,
-) {
+fn rotate_towards_spider(mut spider_camera: Query<(&mut Transform, &SpiderCamera)>) {
     let (mut camera_transform, camera) = spider_camera.single_mut();
-    
-    camera_transform.rotation = camera.target_rotation;
+
+    let current_rotation = camera_transform.rotation;
+    let target_rotation = camera.target_rotation;
+
+    camera_transform.rotation = current_rotation.slerp(target_rotation, ROTATE_LERP_VALUE);
 }
 
 fn get_flat_delta_position(from: Vec3, to: Vec3) -> Vec3 {
