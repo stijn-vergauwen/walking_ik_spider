@@ -4,6 +4,8 @@ use bevy::prelude::*;
 
 use leg::IkLegPlugin;
 
+use crate::rotations;
+
 const POINT_RADIUS: f32 = 0.3;
 const POINT_COLOR: Color = Color::PURPLE;
 const SEGMENT_COLOR: Color = Color::CYAN;
@@ -121,10 +123,10 @@ fn constrain_chain_orientation(chain: &mut IkChain, gizmos: &mut Gizmos) {
 
     let first_point = chain.points[0];
     let last_point = chain.points[chain.points.len() - 1];
-    let leg_orientation = rotation_looking_at(first_point, last_point, Vec3::Y);
+    let leg_orientation = rotations::looking_at(first_point, last_point, Vec3::Y);
 
     let middle_point = chain.points[1];
-    let joint_orientation = rotation_looking_at(first_point, middle_point, Vec3::Y);
+    let joint_orientation = rotations::looking_at(first_point, middle_point, Vec3::Y);
 
     let delta_orientation = leg_orientation.inverse() * joint_orientation;
     let delta_euler = delta_orientation.to_euler(EulerRot::XYZ);
@@ -148,33 +150,18 @@ fn constrain_chain_orientation(chain: &mut IkChain, gizmos: &mut Gizmos) {
     if DRAW_ORIENTATION_GIZMOS {
         let gizmo_point = first_point;
         let gizmo_orientation = leg_orientation;
-    
+
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::X, Color::GREEN);
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Y, Color::RED);
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Z, Color::BLUE);
-    
+
         let gizmo_point = first_point;
         let gizmo_orientation = joint_orientation;
-    
+
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::X, Color::GREEN);
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Y, Color::RED);
         gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Z, Color::BLUE);
     }
-}
-
-fn rotation_looking_at(start: Vec3, target: Vec3, up: Vec3) -> Quat {
-    rotation_towards(target - start, up)
-}
-
-fn rotation_towards(direction: Vec3, up: Vec3) -> Quat {
-    let back = -direction.try_normalize().unwrap_or(Vec3::NEG_Z);
-    let up = up.try_normalize().unwrap_or(Vec3::Y);
-    let right = up
-        .cross(back)
-        .try_normalize()
-        .unwrap_or_else(|| up.any_orthonormal_vector());
-    let up = back.cross(right);
-    Quat::from_mat3(&Mat3::from_cols(right, up, back))
 }
 
 fn calculate_chain_lengths(points: &Vec<Vec3>) -> Vec<f32> {
@@ -197,7 +184,7 @@ fn draw_ik_chain_gizmos(mut gizmos: Gizmos, ik_chains: Query<&IkChain>) {
             for point in chain.points.iter() {
                 gizmos.sphere(*point, Quat::IDENTITY, POINT_RADIUS, POINT_COLOR);
             }
-    
+
             for index in 0..chain.points.len() - 1 {
                 let segment = chain.get_segment(index);
                 gizmos.line(segment.start, segment.end, SEGMENT_COLOR);
