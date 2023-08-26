@@ -14,6 +14,8 @@ const FABRIK_ITERATIONS: i32 = 6;
 const LERP_SPEED: f32 = 6.0;
 const CURVE_HEIGHT: f32 = 0.7;
 
+const DRAW_TARGET_GIZMOS: bool = false;
+
 // const LEG_BASE_MOVE_SPEED: f32 = 4.0;
 
 pub struct IkLegPlugin;
@@ -184,36 +186,40 @@ fn animate_leg_towards_target(
 // Gizmos
 
 fn draw_basic_leg_gizmos(mut gizmos: Gizmos, basic_legs: Query<(&IkChain, &BasicLeg)>) {
-    for (chain, leg) in basic_legs.iter() {
-        draw_target(
-            &mut gizmos,
-            chain.start + leg.target_offset,
-            TARGET_RADIUS,
-            TARGET_COLOR,
-        );
-        draw_target(
-            &mut gizmos,
-            leg.current_target,
-            TARGET_RADIUS,
-            CURRENT_TARGET_COLOR,
-        );
+    if DRAW_TARGET_GIZMOS {
+        for (chain, leg) in basic_legs.iter() {
+            draw_target(
+                &mut gizmos,
+                chain.start + leg.target_offset,
+                TARGET_RADIUS,
+                TARGET_COLOR,
+            );
+            draw_target(
+                &mut gizmos,
+                leg.current_target,
+                TARGET_RADIUS,
+                CURRENT_TARGET_COLOR,
+            );
+        }
     }
 }
 
 fn draw_animated_leg_gizmos(mut gizmos: Gizmos, animated_legs: Query<(&IkChain, &AnimatedLeg)>) {
-    for (chain, leg) in animated_legs.iter() {
-        draw_target(
-            &mut gizmos,
-            chain.start + leg.reposition_target_offset,
-            TARGET_RADIUS,
-            TARGET_COLOR,
-        );
-        draw_target(
-            &mut gizmos,
-            leg.current_target,
-            TARGET_RADIUS,
-            CURRENT_TARGET_COLOR,
-        );
+    if DRAW_TARGET_GIZMOS {
+        for (chain, leg) in animated_legs.iter() {
+            draw_target(
+                &mut gizmos,
+                chain.start + leg.reposition_target_offset,
+                TARGET_RADIUS,
+                TARGET_COLOR,
+            );
+            draw_target(
+                &mut gizmos,
+                leg.current_target,
+                TARGET_RADIUS,
+                CURRENT_TARGET_COLOR,
+            );
+        }
     }
 }
 

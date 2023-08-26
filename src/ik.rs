@@ -10,7 +10,7 @@ const POINT_RADIUS: f32 = 0.3;
 const POINT_COLOR: Color = Color::PURPLE;
 const SEGMENT_COLOR: Color = Color::CYAN;
 
-const DRAW_CHAIN_GIZMOS: bool = true;
+const DRAW_CHAIN_GIZMOS: bool = false;
 const DRAW_ORIENTATION_GIZMOS: bool = false;
 
 pub struct IkPlugin;

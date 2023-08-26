@@ -12,7 +12,7 @@ const LEG_TARGET_OFFSET: Vec3 = Vec3::new(4.0, -0.5, 0.0);
 const LEG_ERROR_THRESHOLD: f32 = 12.0;
 
 const BODY_COLOR: Color = Color::BLACK;
-const LEGS_COLOR: Color = Color::RED;
+const LEGS_COLOR: Color = Color::DARK_GRAY;
 
 pub struct SpiderPlugin;
 
