@@ -10,7 +10,7 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_camera)
-            .add_systems(Update, move_towards_spider);
+            .add_systems(Update, (move_towards_spider, rotate_towards_spider));
     }
 }
 
@@ -34,13 +34,24 @@ fn move_towards_spider(
     let mut camera = spider_camera.single_mut();
     let spider = spider.single();
 
-    let delta_position = get_flat_delta_position(spider.translation, camera.translation);
-    let direction = delta_position.normalize_or_zero();
+    let flat_delta_position = get_flat_delta_position(spider.translation, camera.translation);
+    let direction = flat_delta_position.normalize_or_zero();
 
     let mut new_position = spider.translation + direction * FOLLOW_DISTANCE;
     new_position.y = camera.translation.y;
 
     camera.translation = new_position;
+}
+
+fn rotate_towards_spider(
+    mut spider_camera: Query<&mut Transform, With<SpiderCamera>>,
+    spider: Query<&Transform, (With<Spider>, Without<SpiderCamera>)>,
+) {
+    let mut camera = spider_camera.single_mut();
+    let spider = spider.single();
+
+    let direction_to_spider = (spider.translation - camera.translation).normalize();
+    camera.look_to(direction_to_spider, Vec3::Y);
 }
 
 fn get_flat_delta_position(from: Vec3, to: Vec3) -> Vec3 {
