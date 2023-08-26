@@ -1,10 +1,8 @@
 pub mod leg;
 
-use bevy::prelude::*;
-
-use leg::IkLegPlugin;
-
 use crate::rotations;
+use bevy::prelude::*;
+use leg::IkLegPlugin;
 
 const POINT_RADIUS: f32 = 0.3;
 const POINT_COLOR: Color = Color::PURPLE;
@@ -150,19 +148,8 @@ fn constrain_chain_orientation(chain: &mut IkChain, gizmos: &mut Gizmos) {
 
     // For debugging and visualizing
     if DRAW_ORIENTATION_GIZMOS {
-        let gizmo_point = first_point;
-        let gizmo_orientation = leg_orientation;
-
-        gizmos.ray(gizmo_point, gizmo_orientation * Vec3::X, Color::GREEN);
-        gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Y, Color::RED);
-        gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Z, Color::BLUE);
-
-        let gizmo_point = first_point;
-        let gizmo_orientation = joint_orientation;
-
-        gizmos.ray(gizmo_point, gizmo_orientation * Vec3::X, Color::GREEN);
-        gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Y, Color::RED);
-        gizmos.ray(gizmo_point, gizmo_orientation * Vec3::Z, Color::BLUE);
+        draw_orientation_gizmos(gizmos, first_point, leg_orientation);
+        draw_orientation_gizmos(gizmos, first_point, joint_orientation);
     }
 }
 
@@ -193,4 +180,10 @@ fn draw_ik_chain_gizmos(mut gizmos: Gizmos, ik_chains: Query<&IkChain>) {
             }
         }
     }
+}
+
+fn draw_orientation_gizmos(gizmos: &mut Gizmos, position: Vec3, orientation: Quat) {
+    gizmos.ray(position, orientation * Vec3::X, Color::GREEN);
+    gizmos.ray(position, orientation * Vec3::Y, Color::RED);
+    gizmos.ray(position, orientation * Vec3::Z, Color::BLUE);
 }
